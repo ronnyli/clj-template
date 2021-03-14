@@ -21,6 +21,30 @@
                    #(Double. (nth % 5))))
        (into (sorted-map))))
 
+(defn calculate-daily-weights
+  "For each ticker and date, calculate the % allocated to each ticker.
+  See https://www.investopedia.com/terms/s/strategicassetallocation.asp for context"
+  [target-weights ticker-prices rebalance-frequency]
+  (let [ticker-prices-weighted (into {}
+                                 (map
+                                   (fn [[ticker price-map]]
+                                     (let [target-weight (get target-weights ticker)]
+                                       [ticker (into {}
+                                                 (map (fn [[date price]]
+                                                        [date (* price target-weight)])
+                                                      price-map))]))
+                                   ticker-prices))
+        weighted-sum (apply
+                       merge-with
+                       +
+                       (vals ticker-prices-weighted))
+        ticker-weights (into {}
+                         (map
+                           (fn [[ticker price-map]]
+                             [ticker (merge-with / price-map weighted-sum)])
+                           ticker-prices-weighted))]
+    ticker-weights))
+
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
